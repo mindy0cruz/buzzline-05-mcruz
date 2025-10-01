@@ -1,10 +1,10 @@
 """
 kafka_consumer_case.py
 
-Consume json messages from a live data file. 
+Consume JSON messages from a live Kafka topic. 
 Insert the processed messages into a database.
 
-Example JSON message
+Example JSON message:
 {
     "message": "I just shared a meme! It was amazing.",
     "author": "Charlie",
@@ -44,16 +44,12 @@ from consumers.sqlite_consumer_case import init_db, insert_message
 
 #####################################
 # Function to process a single message
-# #####################################
+#####################################
 
-
-def process_message(message: dict) -> None:
+def process_message(message: dict) -> dict | None:
     """
     Process and transform a single JSON message.
     Converts message fields to appropriate data types.
-
-    Args:
-        message (dict): The JSON message as a Python dictionary.
     """
     logger.info("Called process_message() with:")
     logger.info(f"   {message=}")
@@ -73,11 +69,9 @@ def process_message(message: dict) -> None:
         logger.error(f"Error processing message: {e}")
         return None
 
-
 #####################################
 # Consume Messages from Kafka Topic
 #####################################
-
 
 def consume_messages_from_kafka(
     topic: str,
@@ -89,13 +83,6 @@ def consume_messages_from_kafka(
     """
     Consume new messages from Kafka topic and process them.
     Each message is expected to be JSON-formatted.
-
-    Args:
-    - topic (str): Kafka topic to consume messages from.
-    - kafka_url (str): Kafka broker address.
-    - group (str): Consumer group ID for Kafka.
-    - sql_path (pathlib.Path): Path to the SQLite database file.
-    - interval_secs (int): Interval between reads from the file.
     """
     logger.info("Called consume_messages_from_kafka() with:")
     logger.info(f"   {topic=}")
@@ -124,25 +111,21 @@ def consume_messages_from_kafka(
 
     logger.info("Step 3. Verify topic exists.")
     if consumer is not None:
-        try:
-            is_topic_available(topic)
+        if is_topic_available(topic):
             logger.info(f"Kafka topic '{topic}' is ready.")
-        except Exception as e:
+        else:
             logger.error(
-                f"ERROR: Topic '{topic}' does not exist. Please run the Kafka producer. : {e}"
+                f"ERROR: Topic '{topic}' does not exist. Please run the Kafka producer."
             )
             sys.exit(13)
 
     logger.info("Step 4. Process messages.")
-
     if consumer is None:
         logger.error("ERROR: Consumer is None. Exiting.")
         sys.exit(13)
 
     try:
         # consumer is a KafkaConsumer
-        # message is a kafka.consumer.fetcher.ConsumerRecord
-        # message.value is a Python dictionary
         for message in consumer:
             processed_message = process_message(message.value)
             if processed_message:
@@ -152,21 +135,16 @@ def consume_messages_from_kafka(
         logger.error(f"ERROR: Could not consume messages from Kafka: {e}")
         raise
 
-
 #####################################
 # Define Main Function
 #####################################
 
-
 def main():
     """
     Main function to run the consumer process.
-
     Reads configuration, initializes the database, and starts consumption.
     """
     logger.info("Starting Consumer to run continuously.")
-    logger.info("Things can fail or get interrupted, so use a try block.")
-    logger.info("Moved .env variables into a utils config module.")
 
     logger.info("STEP 1. Read environment variables using new config functions.")
     try:
@@ -207,7 +185,6 @@ def main():
         logger.error(f"Unexpected error: {e}")
     finally:
         logger.info("Consumer shutting down.")
-
 
 #####################################
 # Conditional Execution
